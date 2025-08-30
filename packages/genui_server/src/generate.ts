@@ -5,11 +5,6 @@ import { cacheService, CacheFlowContext } from "./cache";
 import { logger } from "./logger";
 import { Message, Part } from "@genkit-ai/ai";
 
-//
-// DEFINE TOOLS STATICALLY (at the top level of your file)
-//
-// The tool's input schema is now generic. The specific, dynamic schema
-// will be passed to the model in the system prompt.
 const addOrUpdateSurfaceTool = ai.defineTool(
   {
     name: "addOrUpdateSurface",
@@ -23,7 +18,7 @@ const addOrUpdateSurfaceTool = ai.defineTool(
     }),
     outputSchema: z.object({ status: z.string() }),
   },
-  // For added robustness, you could re-fetch the catalog here using the
+  // For added robustness, we could re-fetch the catalog here using the
   // session ID and validate the `definition` against its schema before
   // proceeding. This requires passing the session ID as part of the input.
   async () => ({ status: "updated" })
@@ -65,6 +60,7 @@ export const generateUiFlow = ai.defineFlow(
     // the model on how to structure the 'definition' parameter for this call.
     const systemPrompt = `
 You are an expert UI generation agent.
+
 When you use the 'addOrUpdateSurface' tool, the 'definition' parameter you provide MUST be a JSON object that strictly conforms to the following JSON Schema:
 \`\`\`json
 ${catalogSchemaString}
@@ -121,7 +117,7 @@ ${catalogSchemaString}
         "Starting AI generation for conversation"
       );
       const { stream, response } = ai.generateStream({
-        model: googleAI.model("gemini-pro"),
+        model: googleAI.model("gemini-2.5-pro"),
         // Add the dynamic system prompt to the generation call.
         system: systemPrompt,
         messages: genkitConversation,
