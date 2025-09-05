@@ -71,6 +71,26 @@ void main() {
       expect(sentEvents.last, actionEvent2);
     });
 
+    test('sends action event with no prior change events', () {
+      final sentEvents = <UiEvent>[];
+      final manager = UiEventManager(
+        callback: (surfaceId, events) {
+          sentEvents.addAll(events);
+        },
+      );
+
+      final actionEvent = UiActionEvent(
+        surfaceId: 's1',
+        widgetId: 'w1',
+        eventType: 'onTap',
+      );
+
+      manager.add(actionEvent);
+
+      expect(sentEvents.length, 1);
+      expect(sentEvents.first, actionEvent);
+    });
+
     test('keeps events from different surfaces separate', () {
       final surface1Events = <UiEvent>[];
       final surface2Events = <UiEvent>[];
@@ -111,6 +131,16 @@ void main() {
       expect(surface1Events.contains(event1), isTrue);
 
       expect(surface2Events.isEmpty, isTrue);
+
+      final actionEvent2 = UiActionEvent(
+        surfaceId: 's2',
+        widgetId: 'w2',
+        eventType: 'onTap',
+      );
+      manager.add(actionEvent2);
+      expect(surface2Events.length, 2);
+      expect(surface2Events.contains(actionEvent2), isTrue);
+      expect(surface2Events.contains(event2), isTrue);
     });
   });
 }

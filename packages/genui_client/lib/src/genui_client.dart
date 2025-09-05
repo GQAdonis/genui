@@ -15,17 +15,15 @@ class GenUIClient {
   final http.Client _client;
 
   GenUIClient({String baseUrl = 'http://localhost:3400'})
-      : _baseUrl = baseUrl,
-        _client = http.Client();
+    : _baseUrl = baseUrl,
+      _client = http.Client();
 
   @visibleForTesting
   GenUIClient.withClient(
-    http.Client client,
-    {
+    http.Client client, {
     String baseUrl = 'http://localhost:3400',
-  })
-      : _baseUrl = baseUrl,
-        _client = client;
+  }) : _baseUrl = baseUrl,
+       _client = client;
 
   /// Generates a UI by sending the current conversation to the GenUI server.
   ///
@@ -72,7 +70,7 @@ class GenUIClient {
           final isFinal = json.containsKey('result');
           final message = isFinal
               ? (json['result'] as Map<String, Object?>)['message']
-                  as Map<String, Object?>?
+                    as Map<String, Object?>?
               : json['message'] as Map<String, Object?>?;
 
           if (message == null) continue;
@@ -99,8 +97,7 @@ class GenUIClient {
                       partMap['toolRequest'] as Map<String, Object?>;
                   final toolName = toolRequest['name'] as String;
                   if (toolName == 'addOrUpdateSurface') {
-                    final input =
-                        toolRequest['input'] as Map<String, Object?>;
+                    final input = toolRequest['input'] as Map<String, Object?>;
                     final definition =
                         input['definition'] as Map<String, Object?>;
                     final surfaceId = input['surfaceId'] as String;

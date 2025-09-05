@@ -12,9 +12,12 @@ import 'package:http/testing.dart';
 
 void main() {
   group('GenUIClient', () {
-    test('generateUI succeeds', () async {
+    test('generateUI succeeds with UI messages', () async {
       final mockClient = MockClient.streaming((request, bodyStream) async {
-        expect(request.url.toString(), 'http://localhost:3400/generateUi?stream=true');
+        expect(
+          request.url.toString(),
+          'http://localhost:3400/generateUi?stream=true',
+        );
         expect(request.method, 'POST');
         final body =
             jsonDecode(await bodyStream.bytesToString())
@@ -25,7 +28,7 @@ void main() {
 
         final stream = Stream.fromIterable([
           utf8.encode(
-            jsonEncode({
+            'data: ${jsonEncode({
               'message': {
                 'content': [
                   {
@@ -33,16 +36,13 @@ void main() {
                       'name': 'addOrUpdateSurface',
                       'input': {
                         'surfaceId': 'surface1',
-                        'definition': {
-                          'root': 'root1',
-                          'widgets': <Map<String, Object?>>[],
-                        },
+                        'definition': {'root': 'root1', 'widgets': <Map<String, Object?>>[]},
                       },
-                    }
-                  }
-                ]
-              }
-            }),
+                    },
+                  },
+                ],
+              },
+            })}\n',
           ),
           utf8.encode(
             jsonEncode({
@@ -58,10 +58,10 @@ void main() {
                           'widgets': <Map<String, Object?>>[],
                         },
                       },
-                    }
-                  }
-                ]
-              }
+                    },
+                  },
+                ],
+              },
             }),
           ),
         ]);
@@ -80,6 +80,62 @@ void main() {
       final uiMessage2 = definitions[1] as AiUiMessage;
       expect(uiMessage2.surfaceId, 'surface2');
       expect(uiMessage2.definition['root'], 'root2');
+    });
+
+    test('generateUI succeeds with final text message', () async {
+      final mockClient = MockClient.streaming((request, bodyStream) async {
+        final stream = Stream.fromIterable([
+          utf8.encode(
+            jsonEncode({
+              'result': {
+                'message': {
+                  'content': [
+                    {'text': 'Hello '},
+                    {'text': 'World'},
+                  ],
+                },
+              },
+            }),
+          ),
+        ]);
+        return http.StreamedResponse(stream, 200);
+      });
+
+      final client = GenUIClient.withClient(mockClient);
+      final stream = client.generateUI(const Catalog([]), []);
+
+      final messages = await stream.toList();
+
+      expect(messages.length, 1);
+      final textMessage = messages[0] as AiTextMessage;
+      final text = textMessage.parts
+          .whereType<TextPart>()
+          .map((p) => p.text)
+          .join('');
+      expect(text, 'Hello World');
+    });
+
+    test('generateUI handles empty stream', () async {
+      final mockClient = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(const Stream.empty(), 200);
+      });
+
+      final client = GenUIClient.withClient(mockClient);
+      final stream = client.generateUI(const Catalog([]), []);
+
+      final messages = await stream.toList();
+      expect(messages, isEmpty);
+    });
+
+    test('generateUI handles malformed JSON', () async {
+      final mockClient = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(Stream.value(utf8.encode('{')), 200);
+      });
+
+      final client = GenUIClient.withClient(mockClient);
+      final stream = client.generateUI(const Catalog([]), []);
+
+      expect(stream.toList, throwsA(isA<FormatException>()));
     });
 
     test('generateUI fails', () async {

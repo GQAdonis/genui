@@ -187,5 +187,59 @@ void main() {
 
       expect(find.text('Default'), findsOneWidget);
     });
+
+    testWidgets('handles empty widget list', (WidgetTester tester) async {
+      const surfaceId = 'test_surface';
+      final definition = {'root': 'root1', 'widgets': []};
+      manager.addOrUpdateSurface(surfaceId, definition);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: GenUiSurface(
+              builder: manager,
+              surfaceId: surfaceId,
+              onEvent: (event) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(SizedBox), findsOneWidget);
+    });
+
+    testWidgets('handles root widget not found', (WidgetTester tester) async {
+      const surfaceId = 'test_surface';
+      final definition = {
+        'root': 'non_existent_root',
+        'widgets': [
+          {
+            'id': 'widget1',
+            'widget': {
+              'Text': {'text': 'Hello'},
+            },
+          },
+        ],
+      };
+      manager.addOrUpdateSurface(surfaceId, definition);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: GenUiSurface(
+              builder: manager,
+              surfaceId: surfaceId,
+              onEvent: (event) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Placeholder), findsOneWidget);
+      expect(
+        find.text('Widget with id: non_existent_root not found.'),
+        findsOneWidget,
+      );
+    });
   });
 }

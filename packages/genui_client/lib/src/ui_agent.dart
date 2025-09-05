@@ -24,8 +24,8 @@ class UiAgent {
   /// If [genUiManager] or [client] are not provided, default instances are
   /// created.
   UiAgent({GenUiManager? genUiManager, GenUIClient? client})
-      : _genUiManager = genUiManager ?? GenUiManager(),
-        _client = client ?? GenUIClient();
+    : _genUiManager = genUiManager ?? GenUiManager(),
+      _client = client ?? GenUIClient();
 
   final GenUiManager _genUiManager;
   final GenUIClient _client;

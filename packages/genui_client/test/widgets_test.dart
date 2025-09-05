@@ -69,11 +69,27 @@ void main() {
         buildTestWidget(column, {
           'children': ['child_text', 'child_text'],
           'spacing': 16.0,
+          'mainAxisAlignment': 'center',
+          'crossAxisAlignment': 'end',
         }),
       );
 
       expect(find.text('Child Text'), findsNWidgets(2));
-      // Not easy to test spacing without more complex widget tree analysis.
+      final columnWidget = tester.widget<Column>(find.byType(Column));
+      expect(columnWidget.mainAxisAlignment, MainAxisAlignment.center);
+      expect(columnWidget.crossAxisAlignment, CrossAxisAlignment.end);
+    });
+
+    testWidgets('Column with default values', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(column, {
+          'children': ['child_text'],
+        }),
+      );
+
+      final columnWidget = tester.widget<Column>(find.byType(Column));
+      expect(columnWidget.mainAxisAlignment, MainAxisAlignment.start);
+      expect(columnWidget.crossAxisAlignment, CrossAxisAlignment.center);
     });
 
     testWidgets('Text', (WidgetTester tester) async {
@@ -92,6 +108,7 @@ void main() {
 
       expect(find.byType(CheckboxListTile), findsNWidgets(2));
       await tester.tap(find.text('Option 2'));
+      await tester.pump();
 
       expect(lastEvent, isNotNull);
       expect(lastEvent!.widgetId, 'test_widget');
@@ -110,6 +127,7 @@ void main() {
 
       expect(find.byType(RadioListTile<String>), findsNWidgets(2));
       await tester.tap(find.text('Option 2'));
+      await tester.pump();
 
       expect(lastEvent, isNotNull);
       expect(lastEvent!.widgetId, 'test_widget');
@@ -120,17 +138,17 @@ void main() {
 
     testWidgets('TextField onChanged', (WidgetTester tester) async {
       await tester.pumpWidget(
-        buildTestWidget(textField, {'value': 'initial', 'hintText': 'hint'}),
+        buildTestWidget(textField, {
+          'value': 'initial',
+          'hintText': 'hint',
+          'obscureText': true,
+        }),
       );
 
-      expect(find.widgetWithText(TextField, 'initial'), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextField && widget.decoration?.hintText == 'hint',
-        ),
-        findsOneWidget,
-      );
+      final textFieldWidget = tester.widget<TextField>(find.byType(TextField));
+      expect(textFieldWidget.controller!.text, 'initial');
+      expect(textFieldWidget.decoration!.hintText, 'hint');
+      expect(textFieldWidget.obscureText, isTrue);
 
       await tester.enterText(find.byType(TextField), 'new value');
 
@@ -146,6 +164,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField), 'submitted');
       await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
 
       expect(lastEvent, isNotNull);
       expect(lastEvent!.widgetId, 'test_widget');
@@ -174,6 +193,22 @@ void main() {
       expect(find.byType(Image), findsOneWidget);
       final imageWidget = tester.widget<Image>(find.byType(Image));
       expect(imageWidget.image, isA<AssetImage>());
+    });
+
+    testWidgets('Image throws if both url and assetName are provided', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestWidget(image, {'url': 'url', 'assetName': 'asset'}),
+      );
+      expect(tester.takeException(), isA<Exception>());
+    });
+
+    testWidgets('Image throws if neither url nor assetName are provided', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget(image, {}));
+      expect(tester.takeException(), isA<Exception>());
     });
   });
 }
