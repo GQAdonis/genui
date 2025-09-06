@@ -253,21 +253,219 @@ extension type EventPayload.fromMap(Map<String, Object?> _json)
   DateTime get timestamp => DateTime.parse(_json['timestamp'] as String);
 }
 
-/// A type-safe wrapper for a `StateUpdate` payload, which uses the JSON Patch
-/// standard (RFC 6902) to deliver targeted data-only updates to the client.
+/// A type-safe wrapper for a `StateUpdate` payload, which uses a custom
+/// operation-based system to deliver targeted data-only updates to the client.
 extension type StateUpdate.fromMap(Map<String, Object?> _json)
     implements JsonObjectBase {
-  /// Creates a new [StateUpdate] from a list of JSON Patch [patches].
-  factory StateUpdate({required List<Map<String, Object?>> patches}) =>
-      StateUpdate.fromMap({'patches': patches});
+  /// Creates a new [StateUpdate] from a list of [operations].
+  factory StateUpdate({required List<StateOperation> operations}) =>
+      StateUpdate.fromMap({
+        'operations': operations.map((e) => e.toJson()).toList(),
+      });
 
-  /// An array of JSON Patch operation objects.
-  List<Map<String, Object?>> get patches => (_json['patches'] as List<Object?>)
-      .cast<Map<String, Object?>>()
-      .where((element) {
-        return element.keys.isNotEmpty;
-      })
-      .toList();
+  /// An array of state operation objects.
+  List<StateOperation> get operations {
+    final opsList = _json['operations'] as List<Object?>;
+    return opsList.cast<Map<String, Object?>>().map((opMap) {
+      final op = opMap['op'] as String?;
+      switch (op) {
+        case 'patch':
+          return PatchOperation.fromMap(opMap);
+        case 'listAppend':
+          return ListAppendOperation.fromMap(opMap);
+        case 'listRemove':
+          return ListRemoveOperation.fromMap(opMap);
+        case 'listUpdate':
+          return ListUpdateOperation.fromMap(opMap);
+        default:
+          throw FormatException('Unknown state operation: $op');
+      }
+    }).toList();
+  }
+}
+
+/// A base type for all state operations.
+sealed class StateOperation {
+  const StateOperation();
+
+  /// Returns the underlying JSON map.
+  Map<String, Object?> toJson();
+  String get op;
+
+  /// Creates a [StateOperation] from a map.
+  factory StateOperation.fromMap(Map<String, Object?> map) {
+    final op = map['op'] as String?;
+    switch (op) {
+      case 'patch':
+        return PatchOperation.fromMap(map);
+      case 'listAppend':
+        return ListAppendOperation.fromMap(map);
+      case 'listRemove':
+        return ListRemoveOperation.fromMap(map);
+      case 'listUpdate':
+        return ListUpdateOperation.fromMap(map);
+      default:
+        throw FormatException('Unknown state operation: $op');
+    }
+  }
+}
+
+/// A type-safe wrapper for a `PatchOperation` JSON object.
+class PatchOperation extends StateOperation {
+  /// Creates a new [PatchOperation] from a [patch] object.
+  const PatchOperation({required this.patch});
+
+  @override
+  String get op => 'patch';
+
+  /// The patch object containing the operation details.
+  final PatchObject patch;
+
+  /// Creates a [PatchOperation] from a map.
+  factory PatchOperation.fromMap(Map<String, Object?> map) {
+    return PatchOperation(
+      patch: PatchObject.fromMap(map['patch'] as Map<String, Object?>),
+    );
+  }
+
+  @override
+  Map<String, Object?> toJson() => {
+        'op': op,
+        'patch': patch.toJson(),
+      };
+}
+
+/// A type-safe wrapper for a `PatchObject` JSON object.
+extension type PatchObject.fromMap(Map<String, Object?> _json)
+    implements JsonObjectBase {
+  /// Creates a new [PatchObject] from an [op], [path], and optional [value].
+  factory PatchObject({
+    required String op,
+    required String path,
+    Object? value,
+  }) =>
+      PatchObject.fromMap({
+        'op': op,
+        'path': path,
+        if (value != null) 'value': value,
+      });
+
+  /// The operation to perform (`add`, `remove`, or `replace`).
+  String get op => _json['op'] as String;
+
+  /// The path to the value in the state.
+  String get path => _json['path'] as String;
+
+  /// The value to use for the operation.
+  Object? get value => _json['value'];
+}
+
+/// A type-safe wrapper for a `ListAppendOperation` JSON object.
+class ListAppendOperation extends StateOperation {
+  /// Creates a new [ListAppendOperation] from a [path] and a list of [items].
+  const ListAppendOperation({required this.path, required this.items});
+
+  @override
+  String get op => 'listAppend';
+
+  /// The path to the list in the state.
+  final String path;
+
+  /// The items to append to the list.
+  final List<Map<String, Object?>> items;
+
+  /// Creates a [ListAppendOperation] from a map.
+  factory ListAppendOperation.fromMap(Map<String, Object?> map) {
+    return ListAppendOperation(
+      path: map['path'] as String,
+      items: (map['items'] as List<Object?>).cast<Map<String, Object?>>(),
+    );
+  }
+
+  @override
+  Map<String, Object?> toJson() => {
+        'op': op,
+        'path': path,
+        'items': items,
+      };
+}
+
+/// A type-safe wrapper for a `ListRemoveOperation` JSON object.
+class ListRemoveOperation extends StateOperation {
+  /// Creates a new [ListRemoveOperation] from a [path], [itemKey], and [keys].
+  const ListRemoveOperation({
+    required this.path,
+    required this.itemKey,
+    required this.keys,
+  });
+
+  @override
+  String get op => 'listRemove';
+
+  /// The path to the list in the state.
+  final String path;
+
+  /// The key to use for identifying items to remove.
+  final String itemKey;
+
+  /// The keys of the items to remove.
+  final List<Object?> keys;
+
+  /// Creates a [ListRemoveOperation] from a map.
+  factory ListRemoveOperation.fromMap(Map<String, Object?> map) {
+    return ListRemoveOperation(
+      path: map['path'] as String,
+      itemKey: map['itemKey'] as String,
+      keys: map['keys'] as List<Object?>,
+    );
+  }
+
+  @override
+  Map<String, Object?> toJson() => {
+        'op': op,
+        'path': path,
+        'itemKey': itemKey,
+        'keys': keys,
+      };
+}
+
+/// A type-safe wrapper for a `ListUpdateOperation` JSON object.
+class ListUpdateOperation extends StateOperation {
+  /// Creates a new [ListUpdateOperation] from a [path], [itemKey], and [items].
+  const ListUpdateOperation({
+    required this.path,
+    required this.itemKey,
+    required this.items,
+  });
+
+  @override
+  String get op => 'listUpdate';
+
+  /// The path to the list in the state.
+  final String path;
+
+  /// The key to use for identifying items to update.
+  final String itemKey;
+
+  /// The items to update in the list.
+  final List<Map<String, Object?>> items;
+
+  /// Creates a [ListUpdateOperation] from a map.
+  factory ListUpdateOperation.fromMap(Map<String, Object?> map) {
+    return ListUpdateOperation(
+      path: map['path'] as String,
+      itemKey: map['itemKey'] as String,
+      items: (map['items'] as List<Object?>).cast<Map<String, Object?>>(),
+    );
+  }
+
+  @override
+  Map<String, Object?> toJson() => {
+        'op': op,
+        'path': path,
+        'itemKey': itemKey,
+        'items': items,
+      };
 }
 
 /// A type-safe wrapper for a `LayoutUpdate` payload, which delivers surgical
