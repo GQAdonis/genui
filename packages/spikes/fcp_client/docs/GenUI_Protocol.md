@@ -1,14 +1,14 @@
-# **Flutter Composition Protocol**
+# **GenUI Protocol**
 
-A Specification for a Non-Recursive, JSON-Driven UI Framework for Flutter
+A Specification for a Non-Recursive, JSON-Driven UI Framework
 
 ## **Section 1: Foundational Architecture and Data Flow**
 
-This document specifies the architecture and data formats for "Flutter Composition Protocol" (FCP), a framework for rendering Flutter user interfaces from a JSON definition. The design is guided by principles of strict separation of concerns, versioning, and targeted updates, with schemas constrained for compatibility with structured data generation models. It draws inspiration from existing solutions like Remote Flutter Widgets (RFW) while introducing a more formalized, contract-driven approach to enhance stability and predictability.
+This document specifies the architecture and data formats for "GenUI Protocol" (GUP), a framework for rendering user interfaces from a JSON definition. The design is guided by principles of strict separation of concerns, versioning, and targeted updates, with schemas constrained for compatibility with structured data generation models. It draws inspiration from existing solutions like Remote Flutter Widgets (RFW) while introducing a more formalized, contract-driven approach to enhance stability and predictability.
 
 ### **1.1. Core Philosophy: Decoupling and Contracts**
 
-The central philosophy of FCP is the strict decoupling of four key elements, which together define the complete user interface:
+The central philosophy of GUP is the strict decoupling of four key elements, which together define the complete user interface:
 
 1. **The Catalog (The Contract):** A client-defined document that specifies precisely which widgets, properties, events, and data structures the application is capable of handling. This is a static contract that governs all communication.
 2. **The Layout (The Structure):** A server-provided JSON structure that describes the arrangement of widgets, their static properties, and their relationships to one another.
@@ -21,7 +21,7 @@ All initial UI descriptions transmitted from the server to the client are encaps
 
 The packet contains the following top-level keys:
 
-- `formatVersion`: A semantic version string (e.g., "2.0.0") for the FCP specification itself.
+- `formatVersion`: A semantic version string (e.g., "2.0.0") for the GUP specification itself.
 - `layout`: The complete, non-recursive widget tree definition, as detailed in Section 3.
 - `state`: The initial state data for the widgets defined in the layout, as detailed in Section 4.
 - `metadata`: An optional object for server-side information.
@@ -30,12 +30,12 @@ The packet contains the following top-level keys:
 
 The data flow is a well-defined sequence:
 
-1. **Client Initialization:** The Flutter app initializes its widget registry and generates its `WidgetCatalog`.
+1. **Client Initialization:** The app initializes its widget registry and generates its `WidgetCatalog`.
 2. **Initial UI Request:** The client requests the initial UI from the server. This request includes a reference to a pre-agreed catalog (by name and version) and any local, client-side additions to that catalog.
 3. **Server Response & Negotiation:** The server validates the catalog reference.
    - If the catalog is known, the server merges any additions and responds with a `DynamicUIPacket`.
    - If the catalog reference is unknown, the server responds with an error, prompting the client to resend its request with the complete catalog definition.
-4. **Client-Side Rendering:** The client validates the packet against its catalog, then builds the Flutter widget tree by processing the layout and applying state bindings.
+4. **Client-Side Rendering:** The client validates the packet against its catalog, then builds the widget tree by processing the layout and applying state bindings.
 5. **User Interaction:** A user interacts with a widget (e.g., taps a button).
 6. **Event Transmission:** The client constructs and sends a lightweight `EventPayload` to the server. This payload also includes the same catalog information as the initial request.
 7. **Server-Side Logic & Targeted Update:** The server processes the event and responds with a delta-only payload—either a `LayoutUpdate` to change the structure or a `StateUpdate` to change data.
@@ -44,34 +44,34 @@ The data flow is a well-defined sequence:
 ```mermaid
 sequenceDiagram
     participant User
-    participant Flutter Client
+    participant Client
     participant Server
 
     rect rgba(128, 128, 128, 0.12)
         note over User, Server: Initial UI Render
-        User->>+Flutter Client: Launches App
-        Flutter Client->>Flutter Client: 1. Initializes WidgetRegistry & Generates Catalog
+        User->>+Client: Launches App
+        Client->>Client: 1. Initializes WidgetRegistry & Generates Catalog
 
         alt Catalog is known by server
-            Flutter Client->>+Server: 2. Requests Initial UI (Sends Catalog Reference + Additions)
-            Server-->>-Flutter Client: 3. Responds with DynamicUIPacket (Layout + State)
+            Client->>+Server: 2. Requests Initial UI (Sends Catalog Reference + Additions)
+            Server-->>-Client: 3. Responds with DynamicUIPacket (Layout + State)
         else Catalog is unknown by server
-            Flutter Client->>+Server: 2. Requests Initial UI (Sends Catalog Reference + Additions)
-            Server-->>-Flutter Client: 3a. Responds with "Unknown Catalog" Error
-            Flutter Client->>+Server: 3b. Re-sends request with Full Catalog
-            Server-->>-Flutter Client: 3c. Responds with DynamicUIPacket (Layout + State)
+            Client->>+Server: 2. Requests Initial UI (Sends Catalog Reference + Additions)
+            Server-->>-Client: 3a. Responds with "Unknown Catalog" Error
+            Client->>+Server: 3b. Re-sends request with Full Catalog
+            Server-->>-Client: 3c. Responds with DynamicUIPacket (Layout + State)
         end
-        Note right of Flutter Client: 4. Validates packet, builds widget tree, <br/>and applies state bindings.
-        Flutter Client-->>-User: Displays Full UI
+        Note right of Client: 4. Validates packet, builds widget tree, <br/>and applies state bindings.
+        Client-->>-User: Displays Full UI
     end
 
     loop Interaction & Update Cycle
-        User->>+Flutter Client: 5. Interacts with a rendered widget (e.g., tap)
-        Flutter Client->>+Server: 6. Transmits EventPayload (with Catalog Reference + Additions)
+        User->>+Client: 5. Interacts with a rendered widget (e.g., tap)
+        Client->>+Server: 6. Transmits EventPayload (with Catalog Reference + Additions)
         Note left of Server: 7. Processes event business logic <br/>and determines necessary UI changes.
-        Server-->>-Flutter Client: 8. Responds with Targeted Update (StateUpdate or LayoutUpdate)
-        Note right of Flutter Client: 9. Applies patch to internal state/layout <br/>and rebuilds only the affected widgets.
-      Flutter Client-->>-User: Displays Updated UI
+        Server-->>-Client: 8. Responds with Targeted Update (StateUpdate or LayoutUpdate)
+        Note right of Client: 9. Applies patch to internal state/layout <br/>and rebuilds only the affected widgets.
+      Client-->>-User: Displays Updated UI
     end
 ```
 
@@ -156,7 +156,7 @@ This object describes a single renderable widget type. It uses the JSON Schema s
 
 ## **Section 3: UI Composition: The Non-Recursive Layout Schema**
 
-To meet the constraint of a non-recursive format, the FCP layout is defined using a flat adjacency list model.
+To meet the constraint of a non-recursive format, the GUP layout is defined using a flat adjacency list model.
 
 ### **3.1. The Adjacency List Model**
 
@@ -212,7 +212,7 @@ A special widget type, e.g., `ListViewBuilder`, can be defined in the catalog. I
 
 ## **Section 4: Dynamic Data: The State Management Schema**
 
-FCP enforces a clean separation between the UI's structure (layout) and its dynamic data (state).
+GUP enforces a clean separation between the UI's structure (layout) and its dynamic data (state).
 
 ### **4.1. The `state` Object: A Centralized Data Store**
 
@@ -292,7 +292,7 @@ The payload contains a single `operations` array, where each object is a specifi
 
 This operation performs a single, targeted modification using a pathing system that relies on unique item IDs instead of array indices.
 
-- `op`: `"patch"`
+- `op`: "patch"
 - `patch`: A JSON Patch-like object: `{ "op": "replace" | "add" | "remove", "path": "...", "value": ... }`.
 - **Path Syntax**: The `path` string uses a special syntax for lists: `/listName/key:value/propertyName`. For example, to target the `price` of a product with `sku` "abc-123", the path would be `/products/sku:abc-123/price`.
 
@@ -325,7 +325,7 @@ These commands provide simple, semantic shortcuts for common list manipulations.
 
 - **`listRemove`**: Removes items from a list based on their unique keys.
   - `path`: Path to the target list.
-  - `itemKey`: The name of the unique ID property (e.g., `"sku"`).
+  - `itemKey`: The name of the unique ID property (e.g., "sku").
   - `keys`: An array of key values to remove.
 
 ```json
@@ -359,18 +359,18 @@ For surgical modifications to the UI's structure, the server sends a `LayoutUpda
 
 ## **Section 6: Complete JSON Schema Definitions**
 
-This section provides the formal, consolidated, and valid JSON Schema definitions for the FCP framework.
+This section provides the formal, consolidated, and valid JSON Schema definitions for the GUP framework.
 
-### **6.1. FCP Payloads and Catalog Schema**
+### **6.1. GUP Payloads and Catalog Schema**
 
 This schema defines the objects that are actively exchanged between the client and server. It includes the `WidgetCatalog` definition, as the catalog is a potential part of the communication payload.
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/FCP-payloads-schema-v2.json",
-  "title": "FCP Communication Payloads and Catalog Schema",
-  "description": "A collection of schemas for data exchanged between client and server in the FCP framework.",
+  "$id": "https://example.com/GUP-payloads-schema-v2.json",
+  "title": "GUP Communication Payloads and Catalog Schema",
+  "description": "A collection of schemas for data exchanged between client and server in the GUP framework.",
   "type": "object",
   "$defs": {
     "WidgetDefinition": {
@@ -711,12 +711,12 @@ This schema defines the objects that are actively exchanged between the client a
 
 ## **Section 7: Client-Side Implementation and Best Practices**
 
-### **7.1. The FCP Interpreter**
+### **7.1. The GUP Interpreter**
 
 A robust client-side interpreter should be composed of several key components:
 
 - **Parser and Validator:** Deserializes JSON and validates payloads against both the master schema and the client's `WidgetCatalog`. This includes validating parts of the `state` object against the schemas provided in `dataTypes`.
-- **Widget Tree Builder:** Constructs the Flutter widget tree. This is typically driven by a `WidgetCatalogRegistry` that maps widget type names to concrete Flutter builder functions.
+- **Widget Tree Builder:** Constructs the widget tree. This is typically driven by a `WidgetCatalogRegistry` that maps widget type names to concrete builder functions.
 - **State Manager:** Holds the state object and notifies listening widgets to rebuild when a `StateUpdate` is applied.
 - **Binding Processor:** A crucial component responsible for resolving binding paths and applying the declared transformations.
 - **Update Applier:** Processes incoming `StateUpdate` and `LayoutUpdate` payloads.
@@ -724,8 +724,6 @@ A robust client-side interpreter should be composed of several key components:
 ### **7.2. Performance Considerations**
 
 - **Granular Rebuilds:** A change to a single value in the state should only trigger a rebuild of the specific widgets bound to that value.
-
-- **Efficient List Building:** Use Flutter's `ListView.builder` under the hood for FCP's `ListViewBuilder` to ensure that list items are only built as they are scrolled into view.
 
 - **`const` Widgets:** Use `const` widgets in the client-side mapping code wherever possible.
 
