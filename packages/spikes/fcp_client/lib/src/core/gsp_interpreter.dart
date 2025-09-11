@@ -103,8 +103,27 @@ class GspInterpreter with ChangeNotifier {
   }
 
   void _handleStateUpdate(StateUpdateMessage message) {
-    _state.addAll(message.state);
+    _state = _deepMerge(_state, message.state);
     notifyListeners();
+  }
+
+  Map<String, Object?> _deepMerge(
+    Map<String, Object?> original,
+    Map<String, Object?> update,
+  ) {
+    final Map<String, Object?> result = Map<String, Object?>.from(original);
+    for (final String key in update.keys) {
+      if (update[key] is Map<String, Object?> &&
+          original[key] is Map<String, Object?>) {
+        result[key] = _deepMerge(
+          original[key] as Map<String, Object?>,
+          update[key] as Map<String, Object?>,
+        );
+      } else {
+        result[key] = update[key];
+      }
+    }
+    return result;
   }
 
   void _handleUnknownCatalogError(UnknownCatalogError message) {
